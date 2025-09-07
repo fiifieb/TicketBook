@@ -3,6 +3,14 @@ CC       = gcc
 CFLAGS   = -Wall -Wextra -O2 -Iinclude
 LDFLAGS  = -lpthread
 
+# Detect architecture (basic)
+ARCH := $(shell uname -m)
+ifeq ($(ARCH),riscv64)
+  RV_SRC = src/riscv_inline.S
+else
+  RV_SRC =
+endif
+
 # Source and object files (main app)
 SRC = src/reservation.c src/hashtable.c src/db_interface.c src/utils.c
 OBJ = $(SRC:.c=.o)
@@ -25,13 +33,13 @@ TEST_INC  = -Iinclude
 TEST_LIBS = -lpthread
 TESTS     = tests/test_hashtable tests/test_reservation tests/test_db_interface
 
-tests/test_hashtable: tests/test_hashtable.c src/hashtable.c src/utils.c
+tests/test_hashtable: tests/test_hashtable.c src/hashtable.c src/utils.c $(RV_SRC)
 	$(CC) $(CFLAGS) $(TEST_INC) -o $@ $^ $(TEST_LIBS)
 
-tests/test_reservation: tests/test_reservation.c src/reservation.c src/hashtable.c src/db_interface.c src/utils.c
+tests/test_reservation: tests/test_reservation.c src/reservation.c src/hashtable.c src/db_interface.c src/utils.c $(RV_SRC)
 	$(CC) $(CFLAGS) $(TEST_INC) -o $@ $^ $(TEST_LIBS)
 
-tests/test_db_interface: tests/test_db_interface.c src/db_interface.c
+tests/test_db_interface: tests/test_db_interface.c src/db_interface.c $(RV_SRC)
 	$(CC) $(CFLAGS) $(TEST_INC) -o $@ $^ $(TEST_LIBS)
 
 test_hashtable: tests/test_hashtable

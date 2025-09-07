@@ -18,7 +18,7 @@ static inline uint64_t splitmix64(uint64_t x)
     return x ^ (x >> 31);
 }
 
-int tb_memcmp_token32(const void *a, const void *b, size_t n)
+__attribute__((weak)) int tb_memcmp_token32(const void *a, const void *b, size_t n)
 {
     if (n == 0) return 0;
     if (n > 32) n = 32; // cap
@@ -43,7 +43,7 @@ int tb_memcmp_token32(const void *a, const void *b, size_t n)
 #endif
 }
 
-uint64_t tb_hash_key_fast(const char *event_id, const char *seat_id)
+__attribute__((weak)) uint64_t tb_hash_key_fast(const char *event_id, const char *seat_id)
 {
     // Cheap but solid: hash the two strings with splitmix64 over bytes
     uint64_t h1 = 0x1234567890abcdefULL;
