@@ -8,6 +8,7 @@
 #include <time.h>
 #include <stdio.h>
 #include "db_interface.h"
+#include "utils.h"
 
 #ifndef CONFIG_SEATMAP_INITIAL_CAPACITY
 #define CONFIG_SEATMAP_INITIAL_CAPACITY 16384u
@@ -55,28 +56,9 @@ static long now_unix(void)
     return (long)time(NULL);
 }
 
-static void random_bytes(unsigned char *out, size_t n)
-{
-    if (!out || n == 0)
-        return;
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
-    // arc4random_buf is available on BSD/macOS
-    arc4random_buf(out, n);
-#else
-    // Try /dev/urandom first
-    FILE *urnd = fopen("/dev/urandom", "rb");
-    if (urnd)
-    {
-        size_t readn = fread(out, 1, n, urnd);
-        fclose(urnd);
-        if (readn == n)
-            return;
-    }
-    // Fallback to stdlib PRNG (not cryptographic)
-    for (size_t i = 0; i < n; ++i)
-        out[i] = (unsigned char)(rand() & 0xFF);
-#endif
-}
+// use utils helper for random bytes (keeps platform-specific code in one place)
+static inline void random_bytes(unsigned char *out, size_t n)
+{ tb_random_bytes_fast(out, n); }
 
 static void clear_hold_fields(seat_t *s)
 {

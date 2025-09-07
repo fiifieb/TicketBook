@@ -4,22 +4,11 @@
 
 #include "hashtable.h"
 #include "types.h"
+#include "utils.h"
 
-static uint64_t hash_key(const char *event_id, const char *seat_id)
+static inline uint64_t hash_key(const char *event_id, const char *seat_id)
 {
-    uint64_t hash = 1469598103934665603ULL; // FNV-1a offset
-    const char *parts[2] = {event_id, seat_id};
-
-    for (int i = 0; i < 2; i++)
-    {
-        const char *p = parts[i];
-        while (*p)
-        {
-            hash ^= (unsigned char)*p++;
-            hash *= 1099511628211ULL;
-        }
-    }
-    return hash;
+    return tb_hash_key_fast(event_id, seat_id);
 }
 
 void destroy_bucket(bucket_t *bucket)
@@ -196,7 +185,7 @@ bool seat_map_find_by_token(seat_map_t *m,
         {
             if (curr->seat.status == SEAT_HELD &&
                 curr->seat.hold_token_len == token_len &&
-                memcmp(curr->seat.hold_token, token, token_len) == 0)
+                tb_memcmp_token32(curr->seat.hold_token, token, token_len) == 0)
             {
                 *out = curr->seat;
                 return true;
