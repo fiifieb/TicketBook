@@ -50,6 +50,13 @@ extern "C"
                       const char *seat_id,
                       seat_t *out);
 
+    // Find a seat by its hold token (no locking performed here).
+    // Returns true and copies into *out if found.
+    bool seat_map_find_by_token(seat_map_t *m,
+                                const tb_byte_t *token,
+                                size_t token_len,
+                                seat_t *out);
+
     // ---- Concurrency helpers ----
 
     // Lock the mutex for a specific seat if it exists.

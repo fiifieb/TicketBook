@@ -133,12 +133,55 @@ static void test_concurrent_rw(void)
     printf("[OK] concurrent read/modify/write\n");
 }
 
+static void test_delete(void)
+{
+    seat_map_t *m = seat_map_create(64);
+    seat_t a = mkseat("E1", "A1", 1000);
+    seat_t b = mkseat("E1", "A2", 2000);
+    assert(seat_map_put(m, &a));
+    assert(seat_map_put(m, &b));
+
+    assert(seat_map_delete(m, "E1", "A1"));
+    seat_t out = {0};
+    assert(!seat_map_get(m, "E1", "A1", &out));
+    assert(seat_map_get(m, "E1", "A2", &out));
+
+    seat_map_destroy(m);
+    printf("[OK] delete\n");
+}
+
+static void test_find_by_token(void)
+{
+    seat_map_t *m = seat_map_create(64);
+    seat_t s = mkseat("E1", "A1", 1234);
+    s.status = SEAT_HELD;
+    s.hold_token_len = 8;
+    for (size_t i = 0; i < s.hold_token_len; ++i) s.hold_token[i] = (tb_byte_t)(i + 1);
+    assert(seat_map_put(m, &s));
+
+    seat_t out = {0};
+    tb_byte_t tok[8];
+    for (size_t i = 0; i < 8; ++i) tok[i] = (tb_byte_t)(i + 1);
+    assert(seat_map_find_by_token(m, tok, 8, &out));
+    assert(strcmp(out.event_id, "E1") == 0);
+    assert(strcmp(out.seat_id, "A1") == 0);
+
+    // negative: wrong token
+    tok[0] = 0xFF;
+    assert(!seat_map_find_by_token(m, tok, 8, &out));
+
+    seat_map_destroy(m);
+    printf("[OK] find_by_token\n");
+}
+
 int main(void)
 {
     test_create_put_get();
     test_update_in_place();
     test_lock_unlock();
     test_concurrent_rw();
+    test_delete();
+    test_find_by_token();
     printf("All hashtable tests passed.\n");
     return 0;
 }

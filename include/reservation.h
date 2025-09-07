@@ -1,100 +1,92 @@
+// Public reservation API and related types
+
 #pragma once
-#include <stdbool.h>
+
 #include <stddef.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#include "types.h" // seat_t, seat_status_t and TB_* sizes
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-// ---- Constants ----
-#define RES_TOKEN_LEN 32      // bytes (not hex-encoded)
-#define RES_ID_LEN    32      // for user_id, event_id, seat_id, order_id
+// Expose consistent fixed sizes used across the reservation API
+#define RES_ID_LEN     TB_ID_LEN
+#define RES_TOKEN_LEN  TB_TOKEN_LEN
 
-// ---- Seat status (in-memory mirror) ----
-typedef enum {
-    SEAT_AVAILABLE = 0,
-    SEAT_HELD      = 1,
-    SEAT_SOLD      = 2
-} seat_status_t;
-
-// ---- Result codes for reservation ops ----
+// Result / error codes for reservation operations
 typedef enum {
     RES_OK = 0,
     RES_NOT_FOUND,
     RES_ALREADY_SOLD,
     RES_HELD_BY_OTHER,
     RES_HOLD_EXISTS_SAME_USER,
-    RES_HOLD_EXPIRED,
     RES_INVALID_TOKEN,
+    RES_HOLD_EXPIRED,
     RES_DB_ERROR,
     RES_INTERNAL_ERR
 } res_code_t;
 
-// ---- Public seat view ----
+// Lightweight seat view returned to callers (safe, read-only fields)
 typedef struct {
     char event_id[RES_ID_LEN];
     char seat_id[RES_ID_LEN];
-    int  price_cents;
+    tb_money_cents_t price_cents;
     seat_status_t status;
-    char holder_user_id[RES_ID_LEN]; // empty if none
-    long hold_expires_unix;          // 0 if none
+
+    // present when status == SEAT_HELD
+    char  holder_user_id[RES_ID_LEN];
+    tb_epoch_t hold_expires_unix;
 } seat_view_t;
 
-// ---- place_hold outputs a token + expiry + price ----
+// Result of placing a hold
 typedef struct {
     res_code_t code;
-    unsigned char hold_token[RES_TOKEN_LEN]; // opaque binary; return length in token_len
+    tb_money_cents_t price_cents;
+    tb_epoch_t expires_unix;
+    tb_byte_t hold_token[RES_TOKEN_LEN];
     size_t token_len;
-    long   expires_unix;                      // epoch seconds
-    int    price_cents;                       // authoritative price
 } hold_result_t;
 
-// ---- confirm_reservation returns order info ----
+// Result of confirming a reservation (purchase)
 typedef struct {
     res_code_t code;
-    char order_id[RES_ID_LEN]; // empty on failure
-    int  price_cents;          // charged price
+    char order_id[RES_ID_LEN];
+    tb_money_cents_t price_cents;
 } confirm_result_t;
 
-// ---- Lifecycle ----
-// Initialize in-memory structures (hash table, timers, etc.).
-// Returns false on allocation/init failure.
+// Lifecycle
 bool reservation_init(void);
-
-// Free resources.
 void reservation_shutdown(void);
 
-// ---- Core operations ----
+// Test/utility helpers
+// Insert or replace a seat in the in-memory map (used by tests/seed data).
+bool reservation_put_seat(const seat_t *seat);
 
-// Attempt to place a hold for (user_id, event_id, seat_id).
-// Generates a hold token and sets expiry (~TTL).
-// Thread-safe: acquires per-seat lock internally.
-hold_result_t place_hold(const char* user_id,
-                         const char* event_id,
-                         const char* seat_id);
+// Adjust the default hold length (seconds). Useful for tests.
+void reservation_set_hold_length_seconds(tb_epoch_t seconds);
 
-// Confirm a held seat using the hold token (binary bytes).
-// amount_paid_cents is validated against authoritative price.
-// Performs DB transaction to mark SOLD and create order.
-// Thread-safe; idempotent per token if you implement an idempotency table.
-confirm_result_t confirm_reservation(const unsigned char* hold_token,
+// Core operations
+hold_result_t place_hold(const char *user_id,
+                         const char *event_id,
+                         const char *seat_id);
+
+confirm_result_t confirm_reservation(const tb_byte_t *hold_token,
                                      size_t token_len,
-                                     int amount_paid_cents);
+                                     tb_money_cents_t amount_paid_cents);
 
-// Cancel a hold explicitly (optional; holds also expire).
-res_code_t cancel_hold(const char* user_id,
-                       const char* event_id,
-                       const char* seat_id);
+res_code_t cancel_hold(const char *user_id,
+                       const char *event_id,
+                       const char *seat_id);
 
-// Retrieve current seat view (after lazy-expiring holds if needed).
-bool seat_get(const char* event_id,
-              const char* seat_id,
-              seat_view_t* out);
+bool seat_get(const char *event_id,
+              const char *seat_id,
+              seat_view_t *out);
 
-// Refund a previously sold order (policy-dependent).
-// You can later choose whether SOLD -> AVAILABLE or -> REFUNDED state.
-res_code_t refund(const char* user_id,
-                  const char* order_id);
+res_code_t refund(const char *user_id,
+                  const char *order_id);
 
 #ifdef __cplusplus
 }

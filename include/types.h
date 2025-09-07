@@ -3,6 +3,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// ---- primitive aliases shared across modules
+typedef uint8_t  tb_byte_t;        // raw byte
+typedef int64_t  tb_epoch_t;       // epoch seconds (UTC)
+typedef int32_t  tb_money_cents_t; // currency in cents
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -27,15 +32,15 @@ typedef struct {
 
     // pricing (authoritative price always comes from DB at confirm time;
     // keep here for fast reads/UI hints)
-    int  price_cents;
+    tb_money_cents_t  price_cents;
 
     // state machine
     seat_status_t status;          // AVAILABLE/HELD/SOLD/REFUNDED
 
     // hold info (valid when status == HELD)
     char  holder_user_id[TB_ID_LEN];    // who currently holds it
-    long  hold_expires_unix;            // epoch seconds; 0 if no hold
-    uint8_t hold_token[TB_TOKEN_LEN];   // opaque random token
+    tb_epoch_t  hold_expires_unix;            // epoch seconds; 0 if no hold
+    tb_byte_t hold_token[TB_TOKEN_LEN];   // opaque random token
     size_t  hold_token_len;             // actual bytes used (<= TB_TOKEN_LEN)
 
     // sale info (valid when status == SOLD or REFUNDED)
@@ -43,7 +48,7 @@ typedef struct {
 
     // bookkeeping
     uint32_t version;               // monotonic counter for optimistic checks (optional)
-    long updated_unix;              // last in-memory update time (optional)
+    tb_epoch_t updated_unix;              // last in-memory update time (optional)
 } seat_t;
 
 #ifdef __cplusplus

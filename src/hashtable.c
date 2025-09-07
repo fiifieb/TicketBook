@@ -180,3 +180,29 @@ void seat_map_unlock(seat_map_t *m,
         curr = curr->next;
     }
 }
+
+bool seat_map_find_by_token(seat_map_t *m,
+                            const tb_byte_t *token,
+                            size_t token_len,
+                            seat_t *out)
+{
+    if (!m || !token || token_len == 0 || !out)
+        return false;
+
+    for (size_t i = 0; i < m->cap; ++i)
+    {
+        bucket_t *curr = m->table[i];
+        while (curr)
+        {
+            if (curr->seat.status == SEAT_HELD &&
+                curr->seat.hold_token_len == token_len &&
+                memcmp(curr->seat.hold_token, token, token_len) == 0)
+            {
+                *out = curr->seat;
+                return true;
+            }
+            curr = curr->next;
+        }
+    }
+    return false;
+}

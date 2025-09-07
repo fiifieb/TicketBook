@@ -1,20 +1,20 @@
 # Compiler and flags
 CC       = gcc
 CFLAGS   = -Wall -Wextra -O2 -Iinclude
-LDFLAGS  = -lpthread -lmysqlclient -lmicrohttpd
+LDFLAGS  = -lpthread
 
 # Source and object files (main app)
-SRC = src/main.c src/http_server.c src/reservation.c src/hashtable.c src/db_interface.c src/utils.c
+SRC = src/reservation.c src/hashtable.c src/db_interface.c src/utils.c
 OBJ = $(SRC:.c=.o)
 
 # Output binary
-TARGET = ticketbook
+TARGET =
 
 # ---- Default build ----
-all: $(TARGET)
+all: tests/test_hashtable
 
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+	@echo "No main target configured. Build tests with 'make tests/test_hashtable'"
 
 # Compile each .c file to .o
 %.o: %.c
@@ -23,12 +23,15 @@ $(TARGET): $(OBJ)
 # ---- Tests ----
 TEST_INC  = -Iinclude
 TEST_LIBS = -lpthread
-TESTS     = tests/test_hashtable tests/test_reservation
+TESTS     = tests/test_hashtable tests/test_reservation tests/test_db_interface
 
 tests/test_hashtable: tests/test_hashtable.c src/hashtable.c src/utils.c
 	$(CC) $(CFLAGS) $(TEST_INC) -o $@ $^ $(TEST_LIBS)
 
-tests/test_reservation: tests/test_reservation.c src/reservation.c src/hashtable.c src/utils.c
+tests/test_reservation: tests/test_reservation.c src/reservation.c src/hashtable.c src/db_interface.c src/utils.c
+	$(CC) $(CFLAGS) $(TEST_INC) -o $@ $^ $(TEST_LIBS)
+
+tests/test_db_interface: tests/test_db_interface.c src/db_interface.c
 	$(CC) $(CFLAGS) $(TEST_INC) -o $@ $^ $(TEST_LIBS)
 
 test_hashtable: tests/test_hashtable
@@ -37,7 +40,10 @@ test_hashtable: tests/test_hashtable
 test_reservation: tests/test_reservation
 	./tests/test_reservation
 
-test: test_hashtable test_reservation
+test_db_interface: tests/test_db_interface
+	./tests/test_db_interface
+
+test: test_hashtable test_db_interface test_reservation
 
 # ---- Convenience ----
 run: $(TARGET)
@@ -47,4 +53,4 @@ debug: CFLAGS := -g -O0 -Wall -Wextra -Iinclude
 debug: clean $(TARGET)
 
 clean:
-	rm -f $(OBJ) $(TARGET) $(TESTS)
+	rm -f $(OBJ) $(TESTS)
