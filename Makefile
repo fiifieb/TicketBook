@@ -6,7 +6,7 @@ LDFLAGS  = -lpthread
 # Detect architecture (basic)
 ARCH := $(shell uname -m)
 ifeq ($(ARCH),riscv64)
-  RV_SRC = src/riscv_inline.S
+  RV_SRC = src/riscv_inline.s
 else
   RV_SRC =
 endif
@@ -15,14 +15,8 @@ endif
 SRC = src/reservation.c src/hashtable.c src/db_interface.c src/utils.c
 OBJ = $(SRC:.c=.o)
 
-# Output binary
-TARGET =
-
 # ---- Default build ----
-all: tests/test_hashtable
-
-$(TARGET): $(OBJ)
-	@echo "No main target configured. Build tests with 'make tests/test_hashtable'"
+all: $(TESTS)
 
 # Compile each .c file to .o
 %.o: %.c
@@ -54,11 +48,13 @@ test_db_interface: tests/test_db_interface
 test: test_hashtable test_db_interface test_reservation
 
 # ---- Convenience ----
-run: $(TARGET)
-	./$(TARGET)
+run: test_reservation
+	./tests/test_reservation
 
 debug: CFLAGS := -g -O0 -Wall -Wextra -Iinclude
-debug: clean $(TARGET)
+debug: clean all
 
 clean:
 	rm -f $(OBJ) $(TESTS)
+
+.PHONY: all test test_hashtable test_db_interface test_reservation run debug clean
