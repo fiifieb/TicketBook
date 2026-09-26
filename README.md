@@ -1,24 +1,41 @@
-# 🎟️ TicketBook – Multithreaded Ticketing System
+# 🎟️ TicketBook
 
-TicketBook is a multithreaded ticketing system written in **C** with inline **RISC‑V Assembly**, using a **concurrent hash table** for in-memory reservations and a **MySQL database** for persistent storage of ticket purchases.
+TicketBook is a multithreaded ticket reservation core written in **C**, with optional **RISC‑V assembly** fast paths and an in-memory DB stub used by tests.
 
----
+## Build
 
-## ✨ Features
-- ✅ Fine-grained locking per seat to handle concurrent reservations
-- ✅ Timeout-based seat holds to prevent indefinite locking
-- ✅ Persistent storage in MySQL with transaction-safe updates
-- ✅ Clear separation between in-memory fast lookups and database persistence
+From a clean checkout:
 
----
+```bash
+make
+```
 
-## 🏗️ High-Level Architecture
+This builds all test binaries:
 
-```mermaid
-flowchart LR
-    A[Client/UI] -->|HTTP APIs| B[Backend Service]
-    B -->|Check seat status| C[(Concurrent Hash Table)]
-    B -->|Persist purchase| D[(MySQL Database)]
-    C --> B
-    D --> B
-    B -->|Confirmation & Updates| A
+- `tests/test_hashtable`
+- `tests/test_db_interface`
+- `tests/test_reservation`
+
+On `riscv64`, `src/riscv_inline.s` is compiled and linked automatically.
+
+## Test
+
+Run all tests:
+
+```bash
+make test
+```
+
+Run one test:
+
+```bash
+make test_hashtable
+make test_db_interface
+make test_reservation
+```
+
+## Clean
+
+```bash
+make clean
+```

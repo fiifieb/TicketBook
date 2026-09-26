@@ -1,0 +1,4 @@
+src/*.o
+tests/test_hashtable
+tests/test_db_interface
+tests/test_reservation
