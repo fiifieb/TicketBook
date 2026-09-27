@@ -1,7 +1,9 @@
 # Compiler and flags
 CC       = gcc
-CFLAGS   = -Wall -Wextra -O2 -Iinclude
-LDFLAGS  = -lpthread
+PG_CFLAGS := $(shell pg_config --includedir 2>/dev/null | sed 's|^|-I|')
+PG_LIBS   := $(shell pg_config --libdir 2>/dev/null | sed 's|^|-L|') -lpq
+CFLAGS   = -Wall -Wextra -O2 -Iinclude $(PG_CFLAGS)
+LDFLAGS  = -lpthread $(PG_LIBS)
 
 # Detect architecture (basic)
 ARCH := $(shell uname -m)
@@ -24,7 +26,7 @@ all: $(TESTS)
 
 # ---- Tests ----
 TEST_INC  = -Iinclude
-TEST_LIBS = -lpthread
+TEST_LIBS = -lpthread $(PG_LIBS)
 TESTS     = tests/test_hashtable tests/test_reservation tests/test_db_interface
 
 tests/test_hashtable: tests/test_hashtable.c src/hashtable.c src/utils.c $(RV_SRC)
